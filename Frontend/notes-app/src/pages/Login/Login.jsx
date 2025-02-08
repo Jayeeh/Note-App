@@ -1,8 +1,9 @@
 import React, { useState } from 'react'
 import Navbar from '../../components/Navbar/Navbar'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import Passwordinput from '../../components/Input/Passwordinput'
 import { validateEmail } from '../../utils/helper'
+import axiosInstance from '../../utils/axiosInstance';
 
 const Login = () => {
 
@@ -10,22 +11,54 @@ const Login = () => {
     const [password, setPassword] = useState('');
     const [error, setError] = useState(null);
 
+    const navigate = useNavigate();
+
     const handleLogin = async (e) => {
         e.preventDefault();
 
-        if (!validateEmail(email)) {
-            setError('Please enter a valid email address.');
+        if (!email) {
+            setError('Email is required');
             return;
-        };
+        }
+
+        if (!validateEmail(email)) {
+            setError('Please enter a valid email');
+            return;
+        }
 
         if (!password) {
-            setError("Please enter the password")
+            setError('Password is required');
             return;
-        };
+        }
 
         setError(null);
 
         // Login API Call
+        try {
+            console.log('Attempting login with:', { email }); // Don't log password
+            const response = await axiosInstance.post("/login", {
+                email: email,
+                password: password,
+            });
+
+            console.log('Login response:', response.data);
+
+            // Handle successful login response
+            if (response.data && response.data.accessToken) {
+                localStorage.setItem("token", response.data.accessToken);
+                navigate("/dashboard");
+            } else {
+                setError("Invalid response from server");
+            }
+        } catch (error) {
+            console.error('Login error:', error);
+            // Handle login error
+            if (error.response && error.response.data && error.response.data.message) {
+                setError(error.response.data.message);
+            } else {
+                setError("An unexpected error occurred. Please try again.");
+            }
+        }
     };
 
   return (
